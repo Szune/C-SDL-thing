@@ -180,8 +180,6 @@ SDL_Texture* CreateTexture(SDL_Renderer* renderer) {
 Uint32 timer_callback(Uint32 interval, void *param) {
 	*(u8*)param = ((*(u8*)param) % 40) + 1;
 
-	//printf("Param: %i\n", *(u8*)param);
-
 	SDL_Event event;
 	SDL_UserEvent user_event;
 
@@ -233,11 +231,6 @@ int main(int argc, char *argv[]) {
 	SDL_Texture* tex_water_tile = CreateTinyTexture4Byte(renderer, g_water_tile_rgba);
 	SDL_Texture* tex_creature = CreateSmallTexture1Byte(renderer, g_creature_sprite_1byte);
 
-	//SDL_Surface* screen = SDL_GetWindowSurface(window);
-	//SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 0x33, 0x33, 0x33)); // set background to #333
-	// ^ gets overridden by the renderer, need to redraw it (if there's a reason to have a separate background color and not just textured GUI)
-	//SDL_UpdateWindowSurface(window);
-
 	// setup basic rectangles
 	SDL_Rect tex_map_tile_r = { 
 		.x = 0,
@@ -270,8 +263,6 @@ int main(int argc, char *argv[]) {
 	// process timed events (creature movements etc) on the timer thread
 	// it's a place to start at least
 	// if the "AI" takes too long to process, perhaps move that to a separate thread entirely, we'll see, another solution might be to modularize the AI and do it in parts, or performing half of the "AI" objects at a time
-
-	// SDL_AddTimer: https://wiki.libsdl.org/SDL_AddTimer
 
 	SDL_Event event;
 	bool gameover = false;
@@ -327,7 +318,6 @@ int main(int argc, char *argv[]) {
 		// [rects are of type SDL_Rect*]
 		// src rect == NULL means drawing the entire texture
 		// dst rect == NULL means drawing the texture over the entire rendering target
-		//SDL_RenderCopy(renderer, texture, NULL, &tex_draw_r);
 
 		// draw map (defined in map.h)
 		for(u16 y = 0; y < max_y; ++y) {
@@ -347,14 +337,6 @@ int main(int argc, char *argv[]) {
 
 		// draw creature
 		SDL_RenderCopy(renderer, tex_creature, NULL, &tex_creature_draw_r);
-
-
-		/*
-		SDL_RenderCopy(renderer, tex_grass_tile, NULL, &tex_grass_tile_r);
-		tex_grass_tile_r.x += TINY_SPRITE_SIZE * TINY_SPRITE_SCALE;
-		SDL_RenderCopy(renderer, tex_grass_tile, NULL, &tex_grass_tile_r);
-		tex_grass_tile_r.x -= TINY_SPRITE_SIZE * TINY_SPRITE_SCALE;
-		*/
 
 
 		// draw mouse over everything else
@@ -388,105 +370,3 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
-/*
-	printf("===Args===\n");
-	for(int i = 0; i < argc; ++i) {
-		printf("Arg: %s\n", argv[i]);
-	}
-	printf("==========\n");
-	List_u8* test = list_u8_create(3);
-	list_u8_add(test, 10);
-	list_u8_add(test, 15);
-	for(u64 i = 0; i < test->length; ++i) {
-		printf("Value in 'generic' list: %i\n", list_u8_get(test, i));
-	}
-	list_u8_free(test);
-
-	Option_u8 scared = square_em(15);
-	if(scared.is_some) {
-		printf("Scared was some: %i\n", scared.value);
-	} else {
-		printf("Scared was none :(\n");
-	}
-
-	Result_u8 resulto = add_them(5,6);
-
-	if(resulto.is_success) {
-		printf("Resulto was success: %i\n", resulto.value_or_error.value);
-	} else {
-		printf("Resulto was failure '%s' :(\n", resulto.value_or_error.error);
-	}
-*/
-
-/*
-u8 val = 158;
-printf("Value: %i\n", val);
-List* list = list_create(5, sizeof(u8));
-list_add(list, (void*)10);
-list_add(list, (void*)15);
-list_add(list, (void*)20);
-for(u64 i = 0; i < list->length; ++i) {
-	printf("Value in list: %i\n", (u8)list->items[i]);
-}
-list_free(list);
-*/
-
-
-//Result res = {.is_success = true,.value_or_error.value = &val};
-/*
-Result res_ok = OK(&val);
-printf("Result: success = %i, value = %u\n", res_ok.is_success, *(u8*)res_ok.value_or_error.value);
-Result res_err = ERR("Huge error");
-printf("Result: success = %i, value = %s\n", res_err.is_success, res_err.value_or_error.error);
-u8 x = 1 + 1;
-printf("Value: %i\n", x);
-*/
-
-/*
-// Handling Result types with void pointers: 
-Result addem = add_them(11, 12);
-if (addem.is_success && addem.value_or_error.value) {
-	printf("Result: success = %i, value = %i\n", addem.is_success, *(u8*) addem.value_or_error.value);
-} else {
-	if (addem.value_or_error.error) {
-		printf("Result: success = %i, error = %s\n", addem.is_success, addem.value_or_error.error);
-	} else {
-		printf("Result: success = %i, no error\n", addem.is_success);
-	}
-}
-*/
-
-/* 
-// Handling Option types with void pointers: 
-Option squared = square_em(15);
-if (squared.is_some && squared.value) {
-	printf("Option: is_some = %i, value = %i\n", squared.is_some, *(u8*) squared.value);
-} else {
-	printf("Option: is_some = %i\n", squared.is_some);
-}
-*/
-
-
-
-/*
-Result_u8 add_them(u8 a, u8 b) {
-	if(a < 5 || b < 5) {
-		Result_u8 res = ERR("Huge error from add_them");
-		return res;
-	} else {
-		Result_u8 res = OK(a + b);
-		//Result res = OK(NULL);
-		return res;
-	}
-}
-
-Option_u8 square_em(u8 a) {
-	if(a > 12) {
-		Option_u8 res = NONE();
-		return res;
-	} else {
-		Option_u8 res = SOME(a * a);
-		return res;
-	}
-}
-*/
