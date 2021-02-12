@@ -212,11 +212,11 @@ int main(int argc, char *argv[]) {
 
 	// create window
 	SDL_Window* window = SDL_CreateWindow("Very Exciting",
-										  SDL_WINDOWPOS_UNDEFINED,
-										  SDL_WINDOWPOS_UNDEFINED,
-										  SCREEN_WIDTH,
-										  SCREEN_HEIGHT,
-										  SDL_WINDOW_SHOWN);
+                                          SDL_WINDOWPOS_UNDEFINED,
+                                          SDL_WINDOWPOS_UNDEFINED,
+                                          SCREEN_WIDTH,
+                                          SCREEN_HEIGHT,
+                                          SDL_WINDOW_SHOWN);
 
 	// hide cursor
 	SDL_ShowCursor(SDL_DISABLE);
