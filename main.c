@@ -173,7 +173,7 @@ SDL_Texture* CreateTexture(SDL_Renderer* renderer) {
 /*=============================Main================================*/
 
 int main(int argc, char *argv[]) {
-	SDL_Init(SDL_INIT_VIDEO);
+	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
 	SDL_Window* window = SDL_CreateWindow("Very Exciting",
 										  SDL_WINDOWPOS_UNDEFINED,
 										  SDL_WINDOWPOS_UNDEFINED,
@@ -194,19 +194,10 @@ int main(int argc, char *argv[]) {
 
 	SDL_Surface* screen = SDL_GetWindowSurface(window);
 	SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 0x33, 0x33, 0x33)); // set background to #333
-	// ^ gets overridden by the renderer, need to redraw it
+	// ^ gets overridden by the renderer, need to redraw it (if there's a reason to have a separate background color and not just textured GUI)
 	SDL_UpdateWindowSurface(window);
 	SDL_Event event;
 	bool gameover = false;
-
-	/*
-	SDL_Rect tex_draw_r = { 
-		.x = SCREEN_WIDTH / 2,
-		.y = SCREEN_HEIGHT / 2,
-		.w = SPRITE_SIZE * 2,
-		.h = SPRITE_SIZE * 2 };
-	*/
-
 
 	SDL_Rect tex_map_tile_r = { 
 		.x = 0,
@@ -231,6 +222,16 @@ int main(int argc, char *argv[]) {
 	u16 max_y = SCREEN_HEIGHT / (TINY_SPRITE_SIZE * TINY_SPRITE_SCALE);
 
 	u8 creature_state = 0;
+
+
+	// general design idea for the threads/timers
+	// a SDL timer spawns a new thread,
+	// so keep rendering (and input?) code on main thread,
+	// process timed events (creature movements etc) on the timer thread
+	// it's a place to start at least
+	// if the "AI" takes too long to process, perhaps move that to a separate thread entirely, we'll see
+
+	// SDL_AddTimer: https://wiki.libsdl.org/SDL_AddTimer
 
 
 	while(!gameover) {
@@ -283,7 +284,8 @@ int main(int argc, char *argv[]) {
 
 		// draw creature
 		SDL_RenderCopy(renderer, tex_creature, NULL, &tex_creature_draw_r);
-		/* TODO: implement game time to keep track of timers
+
+		/*
 		switch(creature_state) {
 			case 0:
 				SDL_RenderCopy(renderer, tex_creature, NULL, &tex_creature_draw_r);
@@ -296,6 +298,7 @@ int main(int argc, char *argv[]) {
 				break;
 		}
 		*/
+
 
 		/*
 		SDL_RenderCopy(renderer, tex_grass_tile, NULL, &tex_grass_tile_r);
