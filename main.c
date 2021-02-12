@@ -170,10 +170,49 @@ SDL_Texture* CreateTexture(SDL_Renderer* renderer) {
 	return tex;
 }
 
+/*=============================Timer================================*/
+
+// callback codes
+#define CODE_NONE 0
+#define CODE_PROCESS_CREATURES 1
+
+// callback
+Uint32 timer_callback(Uint32 interval, void *param) {
+	*(u8*)param = ((*(u8*)param) % 40) + 1;
+
+	//printf("Param: %i\n", *(u8*)param);
+
+	SDL_Event event;
+	SDL_UserEvent user_event;
+
+	user_event.type = SDL_USEREVENT;
+	if (*(u8*)param % 20 == 0) {
+		user_event.code = CODE_PROCESS_CREATURES;
+	} else {
+		user_event.code = CODE_NONE;
+	}
+	user_event.data1 = NULL;
+	user_event.data2 = NULL;
+
+	event.type = SDL_USEREVENT;
+	event.user = user_event;
+
+	SDL_PushEvent(&event);
+	return interval;
+}
+
 /*=============================Main================================*/
 
 int main(int argc, char *argv[]) {
+	// initialize SDL
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER);
+
+	// initialize application specific values
+	u8 timer_count = 0;
+	Uint32 timer_delay = 50;
+	SDL_TimerID process_timer = SDL_AddTimer(timer_delay, timer_callback, &timer_count);
+
+	// create window
 	SDL_Window* window = SDL_CreateWindow("Very Exciting",
 										  SDL_WINDOWPOS_UNDEFINED,
 										  SDL_WINDOWPOS_UNDEFINED,
@@ -184,27 +223,27 @@ int main(int argc, char *argv[]) {
 	// hide cursor
 	SDL_ShowCursor(SDL_DISABLE);
 
-	// setup palette
+	// setup renderer
 	SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
+
+	// setup textures
 	SDL_Texture* tex_mouse = CreateSmallTexture1Byte(renderer, g_mouse_sprite_1byte);
 	SDL_Texture* texture = CreateTexture(renderer);
 	SDL_Texture* tex_grass_tile = CreateTinyTexture4Byte(renderer, g_grass_tile_rgba);
 	SDL_Texture* tex_water_tile = CreateTinyTexture4Byte(renderer, g_water_tile_rgba);
 	SDL_Texture* tex_creature = CreateSmallTexture1Byte(renderer, g_creature_sprite_1byte);
 
-	SDL_Surface* screen = SDL_GetWindowSurface(window);
-	SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 0x33, 0x33, 0x33)); // set background to #333
+	//SDL_Surface* screen = SDL_GetWindowSurface(window);
+	//SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 0x33, 0x33, 0x33)); // set background to #333
 	// ^ gets overridden by the renderer, need to redraw it (if there's a reason to have a separate background color and not just textured GUI)
-	SDL_UpdateWindowSurface(window);
-	SDL_Event event;
-	bool gameover = false;
+	//SDL_UpdateWindowSurface(window);
 
+	// setup basic rectangles
 	SDL_Rect tex_map_tile_r = { 
 		.x = 0,
 		.y = 0,
 		.w = TINY_SPRITE_SIZE * TINY_SPRITE_SCALE,
 		.h = TINY_SPRITE_SIZE * TINY_SPRITE_SCALE };
-
 
 	SDL_Rect tex_mouse_draw_r = { 
 		.x = (SCREEN_WIDTH / 2) + 16 + (SPRITE_SIZE * 2),
@@ -218,6 +257,7 @@ int main(int argc, char *argv[]) {
 		.w = SMALL_SPRITE_SIZE,
 		.h = SMALL_SPRITE_SIZE};
 
+	// might as well do this with a macro, but w/e
 	u16 max_x = SCREEN_WIDTH / (TINY_SPRITE_SIZE * TINY_SPRITE_SCALE);
 	u16 max_y = SCREEN_HEIGHT / (TINY_SPRITE_SIZE * TINY_SPRITE_SCALE);
 
@@ -229,10 +269,12 @@ int main(int argc, char *argv[]) {
 	// so keep rendering (and input?) code on main thread,
 	// process timed events (creature movements etc) on the timer thread
 	// it's a place to start at least
-	// if the "AI" takes too long to process, perhaps move that to a separate thread entirely, we'll see
+	// if the "AI" takes too long to process, perhaps move that to a separate thread entirely, we'll see, another solution might be to modularize the AI and do it in parts, or performing half of the "AI" objects at a time
 
 	// SDL_AddTimer: https://wiki.libsdl.org/SDL_AddTimer
 
+	SDL_Event event;
+	bool gameover = false;
 
 	while(!gameover) {
 		if(SDL_PollEvent(&event)) {
@@ -251,6 +293,27 @@ int main(int argc, char *argv[]) {
 				case SDL_MOUSEMOTION:
 					tex_mouse_draw_r.x = event.motion.x;
 					tex_mouse_draw_r.y = event.motion.y;
+					break;
+				case SDL_USEREVENT:
+					switch(event.user.code) {
+						case CODE_PROCESS_CREATURES:
+							creature_state = (creature_state + 1) % 4;
+							switch(creature_state) {
+								case 0:
+									tex_creature_draw_r.x += SMALL_SPRITE_SIZE;
+									break;
+								case 1:
+									tex_creature_draw_r.y += SMALL_SPRITE_SIZE;
+									break;
+								case 2:
+									tex_creature_draw_r.y -= SMALL_SPRITE_SIZE;
+									break;
+								case 3:
+									tex_creature_draw_r.x -= SMALL_SPRITE_SIZE;
+									break;
+							}
+							break;
+					}
 					break;
 			}
 		}
@@ -285,20 +348,6 @@ int main(int argc, char *argv[]) {
 		// draw creature
 		SDL_RenderCopy(renderer, tex_creature, NULL, &tex_creature_draw_r);
 
-		/*
-		switch(creature_state) {
-			case 0:
-				SDL_RenderCopy(renderer, tex_creature, NULL, &tex_creature_draw_r);
-				break;
-			case 1:
-				break;
-			case 2:
-				break;
-			case 3:
-				break;
-		}
-		*/
-
 
 		/*
 		SDL_RenderCopy(renderer, tex_grass_tile, NULL, &tex_grass_tile_r);
@@ -330,6 +379,9 @@ int main(int argc, char *argv[]) {
 
 	// destroy all windows
 	SDL_DestroyWindow(window);
+
+	// destroy all timers
+	SDL_RemoveTimer(process_timer);
 	
 	// quit SDL
 	SDL_Quit();
